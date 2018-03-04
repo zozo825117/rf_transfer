@@ -1,28 +1,8 @@
 //#include <stdlib.h>  
 //#include <stdio.h > 
-#include <string.h>
-//#include <unistd.h>
-//#include <fcntl.h >
-#include <poll.h>
 
-#include <stdint.h>
-
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <getopt.h>
-#include <fcntl.h>
-#include "thread.h"
-
+#include "gpio.h"
     
-#define MSG(args...) printf(args) 
-
-#define LED_GPIO        53
-#define KEY_GPIO        48
-
-
-
-
 
 int gpio_export(int pin)  
 {  

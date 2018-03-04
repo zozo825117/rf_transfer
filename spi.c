@@ -1,19 +1,7 @@
 
-#include <stdint.h>
 
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <getopt.h>
-#include <fcntl.h>
-#include <string.h>
-#include <sys/ioctl.h>
-#include <linux/types.h>
-#include <linux/spi/spidev.h>
-#include "thread.h"
-#include "gpio.h"
 #include "spi.h"
-#include "com.h"
+
 
 static const char *device = "/dev/spidev1.0";
 static uint8_t mode;
@@ -253,7 +241,7 @@ static void spi_proc(void)
 
 			
 		usleep(50*1000);
-		//sleep(2);
+		//sleep(20);
 	}
 
 

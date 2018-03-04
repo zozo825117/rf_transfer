@@ -1,10 +1,6 @@
-#include <stdio.h> 
-#include <unistd.h> 
-#include <termios.h> 
-#include <fcntl.h> 
-#include <sys/ioctl.h> 
+
 #include "com.h"
-#include <sys/types.h>
+
 // 设定波特率
 /** 
 *@brief  设置串口通信速率 

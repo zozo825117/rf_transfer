@@ -19,7 +19,7 @@
 #define	_TRD_H_
 #include <pthread.h>
 #include <semaphore.h>
-
+#include "include.h"
 
 typedef pthread_t		TRD_t;
 typedef sem_t			SEM_t;
