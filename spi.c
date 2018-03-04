@@ -6,13 +6,14 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <fcntl.h>
-
+#include <string.h>
 #include <sys/ioctl.h>
 #include <linux/types.h>
 #include <linux/spi/spidev.h>
 #include "thread.h"
 #include "gpio.h"
 #include "spi.h"
+#include "com.h"
 
 static const char *device = "/dev/spidev1.0";
 static uint8_t mode;
@@ -22,9 +23,9 @@ static uint16_t delay;
 static int gspifd;
 
 
-static uint8_t tx[255] = {0,};
-static uint8_t rx[255] = {0, };
-uint8_t ReadBuf[255] = {0, };
+static uint8_t tx[2000] = {0,};
+static uint8_t rx[2000] = {0, };
+uint8_t ReadBuf[2000] = {0, };
 static struct spi_ioc_transfer tr;
 
 
@@ -87,7 +88,7 @@ static int16_t spi_read_num(void)
 	tr.len = 1;
 	tx[0] = 0x05;
 	ret = ioctl(gspifd, SPI_IOC_MESSAGE(1), &tr);
-	usleep(20);
+	usleep(1);
 
 	tr.len = 1;
 	tx[0] = 0x00;
@@ -122,7 +123,7 @@ uint8_t spi_read_data(uint16_t size)
 	tx[0] = 0x03;
 	ret = ioctl(gspifd, SPI_IOC_MESSAGE(1), &tr);
 
-    usleep(20);
+    usleep(1);
 
 	// tr.len = 1;
 	// tx[0] = 0x00;
@@ -238,13 +239,21 @@ static void spi_proc(void)
 			else
 			{
 				printf("got id num = %d\r\n",num);
+
+				ret = fn_write_data_block_uart0(ReadBuf,num*FRAME_LENTH); 
+				if(ret < 0) 
+					printf("uart send error\n");
+				else
+					printf("uart send num=%d\n",num*FRAME_LENTH);
+
+
 			}
 		}
 
 
 			
-		//usleep(500*1000);
-		sleep(2);
+		usleep(50*1000);
+		//sleep(2);
 	}
 
 
@@ -254,9 +263,9 @@ void spi_init(void)
 {
 	TRD_t spi_trd;
 // cs0
-    gpio_export(CS0_GPIO);
-    gpio_direction(CS0_GPIO, 1);
-    gpio_write(CS0_GPIO, 0);
+  gpio_export(CS0_GPIO);
+  gpio_direction(CS0_GPIO, 1);
+  gpio_write(CS0_GPIO, 0);
 	spi_dev_open();
 	spi_dev_set();
 	trd_create(&spi_trd, (void*)&spi_proc, NULL);

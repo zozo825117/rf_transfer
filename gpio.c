@@ -256,7 +256,7 @@ void gpio_init(void)
 //     gpio_direction(CS1_GPIO, 1);
 //     gpio_write(CS1_GPIO, 0);
 
-    trd_create(&gpio_trd, (void*)&gpio_proc, NULL);
+    //trd_create(&gpio_trd, (void*)&gpio_proc, NULL);
 }
 
 

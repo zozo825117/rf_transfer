@@ -1,4 +1,5 @@
 
+#include <stdio.h> 
 #include "spi.h"
 
 void main(void)

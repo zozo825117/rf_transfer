@@ -1,234 +1,222 @@
-#include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <errno.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <termios.h>
-#include <stdlib.h>
+#include <stdio.h> 
+#include <unistd.h> 
+#include <termios.h> 
+#include <fcntl.h> 
+#include <sys/ioctl.h> 
 #include "com.h"
-#include "thread.h"
+#include <sys/types.h>
+// 设定波特率
+/** 
+*@brief  设置串口通信速率 
+*@param  fd     类型 int  打开串口的文件句柄 
+*@param  speed  类型 int  串口速度 
+*@return  void 
+*/ 
+int speed_arr[] = { B38400, B19200, B9600, B4800, B2400, B1200, B300, 
+          B38400, B19200, B9600, B4800, B2400, B1200, B300, }; 
+int name_arr[] = {38400,  19200,  9600,  4800,  2400,  1200,  300, 38400,   
+          19200,  9600, 4800, 2400, 1200,  300, }; 
+void set_speed(int fd, int speed)
+{ 
+  int   i;  
+  int   status;  
+  struct termios Opt; 
+  tcgetattr(fd, &Opt);  
+  for ( i= 0;  i < sizeof(speed_arr) / sizeof(int);  i++) {  
+    if  (speed == name_arr[i]) {      
+      tcflush(fd, TCIOFLUSH);      
+      cfsetispeed(&Opt, speed_arr[i]);   
+      cfsetospeed(&Opt, speed_arr[i]);    
+      status = tcsetattr(fd, TCSANOW, &Opt);   
+      if  (status != 0) {         
+        perror("tcsetattr fd");   
+        return;      
+      }     
+      tcflush(fd,TCIOFLUSH);    
+    }   
+  } 
+} 
 
-static int gcomfd;
+// 设置串口数据位，停止位和效验位
+/** 
+*@brief   设置串口数据位，停止位和效验位 
+*@param  fd     类型  int  打开的串口文件句柄 
+*@param  databits 类型  int 数据位   取值 为 7 或者8 
+*@param  stopbits 类型  int 停止位   取值为 1 或者2 
+*@param  parity  类型  int  效验类型 取值为N,E,O,,S 
+*/ 
+int set_Parity(int fd,int databits,int stopbits,int parity) 
+{  
+    struct termios options;  
+    if (tcgetattr(fd,&options) != 0) 
+    {  
+        perror("SetupSerial 1");      
+            return(-1);   
+    } 
+    options.c_cflag &= ~CSIZE;  
+    switch (databits) /*设置数据位数*/ 
+    {    
+        case 7:    
+            options.c_cflag |= CS7;  
+            break; 
+        case 8:      
+            options.c_cflag |= CS8; 
+            break;    
+        default:     
+            fprintf(stderr,"Unsupported data size\n"); 
+        return (-1);   
+    } 
+    switch (parity)  
+    {    
+        case 'n': 
+        case 'N':     
+        options.c_cflag &= ~PARENB;   /* Clear parity enable */ 
+        options.c_iflag &= ~INPCK;     /* Enable parity checking */  
+        break;   
+        case 'o':    
+        case 'O':      
+        options.c_cflag |= (PARODD | PARENB); /* 设置为奇效验*/   
+        options.c_iflag |= INPCK;             /* Disnable parity checking */  
+        break;   
+        case 'e':   
+        case 'E':    
+        options.c_cflag |= PARENB;     /* Enable parity */     
+        options.c_cflag &= ~PARODD;   /* 转换为偶效验*/      
+        options.c_iflag |= INPCK;       /* Disnable parity checking */ 
+        break; 
+        case 'S':  
+        case 's':  /*as no parity*/    
+        options.c_cflag &= ~PARENB; 
+        options.c_cflag &= ~CSTOPB;
+        break;   
+        default:    
+        fprintf(stderr,"Unsupported parity\n");     
+        return (-1);   
+      }   
+    /* 设置停止位*/   
+    switch (stopbits) 
+    {    
+        case 1:     
+        options.c_cflag &= ~CSTOPB;   
+        break;   
+        case 2:     
+        options.c_cflag |= CSTOPB;   
+        break; 
+        default:     
+        fprintf(stderr,"Unsupported stop bits\n");   
+        return (-1);  
+    }  
 
-int setTTY(int fd,int nSpeed, int nBits, char nEvent, int nStop)
+    /* Set input parity option */  
+    if (parity != 'n')
+    {
+        options.c_iflag |= INPCK; 
+    } 
+    tcflush(fd,TCIFLUSH); 
+    options.c_lflag &= (~ECHO); 
+    options.c_lflag &= (~ICANON); 
+    options.c_cc[VTIME] = 1; /* 设置超时15 seconds*/    
+    options.c_cc[VMIN] = 100; /* Update the options and do it NOW */ 
+
+    //c_cc数组的VSTART和VSTOP元素被设定成DC1和DC3，代表ASCII标准的XON和XOFF字符，如果在传输这两个字符的时
+    //候就传不过去，需要把软件流控制屏蔽，即： 
+    options.c_iflag &= ~ (IXON | IXOFF | IXANY); 
+    //有时候，在用write发送数据时没有键入回车，信息就发送不出去，这主要是因为我们在输入输出时是按照规范模式接收到
+    //回车或换行才发送，而更多情况下我们是不必键入回车或换行的。此时应转换到行方式输入，不经处理直接发送，设置如
+    //下： 
+    options.c_lflag &= ~ (ICANON | ECHO | ECHOE | ISIG); 
+    //还存在这样的情况：发送字符0X0d的时候，往往接收端得到的字符是0X0a，原因是因为在串口设置中c_iflag和c_oflag中存
+    //在从NL-CR和CR-NL的映射，即串口能把回车和换行当成同一个字符，可以进行如下设置屏蔽之： 
+    options.c_iflag &= ~ (INLCR | ICRNL | IGNCR); 
+    options.c_oflag &= ~(ONLCR | OCRNL); 
+    
+
+    if (tcsetattr(fd,TCSANOW,&options) != 0)    
+    {  
+        perror("SetupSerial 3");    
+        return (-1);   
+    }  
+    return (0);   
+} 
+
+int fd_uart0;
+struct timeval uart0_tv;
+fd_set uart0_ready;     /* used for select */
+
+int fn_init_uart0(char *uart,int baudrate,int databits,int stopbits,int parity)
 {
-    struct termios newtio,oldtio;
-    if  ( tcgetattr( fd,&oldtio)  !=  0) 
+    char *dev  = "/dev/ttySU0"; 
+    //uart0_tv.tv_sec = 0;
+    //uart0_tv.tv_usec = 0;
+    fd_uart0 = open(uart,O_RDWR);       
+    if (-1 == fd_uart0)  
+    {        
+        perror("Can't Open Serial Port"); 
+        return -1;     
+    }   
+    set_speed(fd_uart0,baudrate); 
+    if (set_Parity(fd_uart0,databits,stopbits,parity) == -1)  
     { 
-        perror("SetupSerial 1");
+        printf("Set Parity Error\n"); 
         return -1;
-    }
-    bzero( &newtio, sizeof( newtio ) );
-    newtio.c_cflag  |=  CLOCAL | CREAD; 
-    newtio.c_cflag &= ~CSIZE; 
-
-    switch( nBits )
-    {
-    case 7:
-        newtio.c_cflag |= CS7;
-        break;
-    case 8:
-        newtio.c_cflag |= CS8;
-        break;
-    }
-
-    switch( nEvent )
-    {
-    case 'O':                     //奇校验
-        newtio.c_cflag |= PARENB;
-        newtio.c_cflag |= PARODD;
-        newtio.c_iflag |= (INPCK | ISTRIP);
-        break;
-    case 'E':                     //偶校验
-        newtio.c_iflag |= (INPCK | ISTRIP);
-        newtio.c_cflag |= PARENB;
-        newtio.c_cflag &= ~PARODD;
-        break;
-    case 'N':                    //无校验
-        newtio.c_cflag &= ~PARENB;
-        break;
-    }
-
-switch( nSpeed )
-    {
-    case 2400:
-        cfsetispeed(&newtio, B2400);
-        cfsetospeed(&newtio, B2400);
-        break;
-    case 4800:
-        cfsetispeed(&newtio, B4800);
-        cfsetospeed(&newtio, B4800);
-        break;
-    case 9600:
-        cfsetispeed(&newtio, B9600);
-        cfsetospeed(&newtio, B9600);
-        break;
-    case 115200:
-        cfsetispeed(&newtio, B115200);
-        cfsetospeed(&newtio, B115200);
-        break;
-    default:
-        cfsetispeed(&newtio, B9600);
-        cfsetospeed(&newtio, B9600);
-        break;
-    }
-    if( nStop == 1 )
-    {
-        newtio.c_cflag &=  ~CSTOPB;
-    }
-    else if ( nStop == 2 )
-    {
-        newtio.c_cflag |=  CSTOPB;
-    }
-    newtio.c_cc[VTIME]  = 0;
-    newtio.c_cc[VMIN] = 0;
-    tcflush(fd,TCIFLUSH);
-    if((tcsetattr(fd,TCSANOW,&newtio))!=0)
-    {
-        perror("com set error");
-        return -1;
-    }
-    printf("set done!\n");
-    return 0;
+    } 
+    return 0;   
 }
 
-int open_port(int comport)
+
+int fn_close_uart0(void)
 {
-    char *dev[]={"/dev/ttyO0","/dev/ttyO1","/dev/ttyO2","/dev/ttyO3","/dev/ttyO4","/dev/ttyO5",};
-    int fd;
-    //long  vdisable;
-
-
-    fd = open( dev[comport], O_RDWR|O_NOCTTY|O_NDELAY);
-    if (-1 == fd)
-    {
-        perror("Can't Open Serial Port");
-        return(-1);
-    }
-    else 
-    {
-        printf("open %s .....\n",dev[comport]);
-    }
-
-#if 0
-    if (comport==1)
-    {    
-        fd = open( "/dev/ttyO1", O_RDWR|O_NOCTTY|O_NDELAY);
-        if (-1 == fd)
-        {
-            perror("Can't Open Serial Port");
-            return(-1);
-        }
-        else 
-        {
-            printf("open ttyO1 .....\n");
-        }
-    }
-    else if(comport==4)
-    {    
-        fd = open( "/dev/ttyO4", O_RDWR|O_NOCTTY|O_NDELAY);
-        if (-1 == fd)
-        {
-            perror("Can't Open Serial Port");
-            return(-1);
-        }
-        else 
-        {
-            printf("open ttyO4 .....\n");
-        }    
-    }
-    else if (comport==5)
-    {
-        fd = open( "/dev/ttyO5", O_RDWR|O_NOCTTY|O_NDELAY);
-        if (-1 == fd)
-        {
-            perror("Can't Open Serial Port");
-            return(-1);
-        }
-        else 
-        {
-            printf("open ttyO5 .....\n");
-        }
-    }
-#endif
-
-    if(fcntl(fd, F_SETFL, 0)<0)
-    {
-        printf("fcntl failed!\n");
-    }
-    else
-    {
-        printf("fcntl=%d\n",fcntl(fd, F_SETFL,0));
-    }
-
-    if(isatty(STDIN_FILENO)==0)
-    {
-        printf("standard input is not a terminal device\n");
-    }
-    else
-    {
-        printf("isatty success!\n");
-    }
-
-    printf("fd-open=%d\n",fd);
-    return fd;
+    int result;
+    result = close(fd_uart0);       
 }
 
-void com_dev_open(void)
+int fn_read_data_block_uart0(char* buff,int len)
 {
-    if((gcomfd=open_port(4))<0)
+    int nread;  
+    nread = read(fd_uart0, buff, len);
+    return nread;   
+    /*if(nread<0) 
     {
-        perror("open_port error");
-        //return;
-    }
+        perror("read error"); 
+    }*/ 
 }
 
-void com_para_set(void)
+int fn_write_data_block_uart0(char* buff,int len)
 {
-    if(setTTY(gcomfd,115200,8,'N',1)<0)
+    int nwrite; 
+    nwrite = write(fd_uart0,buff,len); //向GPIO设备文件中写数据 
+    return nwrite;  
+    /*if(nwrite<0) 
     {
-        perror("set_opt error");
-        return;
-    }
-    printf("set fd=%d\n",gcomfd);
+        perror("read error"); 
+    }*/ 
 }
 
-
-void com_proc(void)
+// 如果fd_uart0有可读事件，则返回0,否则返回-1
+// 该函数仅仅只是查询，不会等待，所以是立即返回的
+int fn_poll_uart0_recv(void)
 {
-
-    char rbuff[10]={0,};
-    char nread;
-    char i;
-
-	printf("start proc fd=%d\n",gcomfd);
-    //read buff
-    while(1)
+    FD_ZERO(&uart0_ready);
+    FD_SET(fd_uart0, &uart0_ready); 
+    select(fd_uart0 + 1, &uart0_ready, NULL, NULL, &uart0_tv);
+    if (FD_ISSET(fd_uart0, &uart0_ready)) 
     {
-        nread=read(gcomfd,rbuff,8);
-        printf("com reading ...\n");
-        if(nread > 0)
-        {
-        	printf("nread=%d,%s\n",nread,rbuff);
-
-		    // write data
-		    i = write(gcomfd, rbuff, nread);
-		    if (i < 0) {
-		        printf("write data error!\n");
-		        //return -1;
-		    }
-        }
-        
-        sleep(1);
+        return 0;   
     }
+    return -1;
 }
 
-void com_init(void)
+void com_init( void)
 {
-	TRD_t com_trd;
-	com_dev_open();
-	com_para_set();
-	trd_create(&com_trd, (void*)&com_proc, NULL);
+    int result;
+    fn_init_uart0("/dev/ttyGW0",115200,8,1,'N');
+    if(result < 0) {
+        printf("Open uart fail!\n");
+        return 0;
+    }
+    else {
+        printf("Open uart ok!\n");
+    }
+
 }
+
