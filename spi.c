@@ -88,7 +88,7 @@ static int16_t spi_read_num(void)
 	{
 		if(rx[0] != 0 && rx[0] != 255)
 		{
-			printf("num = %d \r\n", rx[0]); 
+			//printf("num = %d \r\n", rx[0]); 
 		}
 		
 	}
@@ -149,22 +149,22 @@ uint8_t spi_read_data(uint16_t size)
 	ChkSum = rx[0];
 
 	gpio_write(CS0_GPIO, 1);
-    printf("\r\nID DATA=");
-    for(i=0;i<j;i++)
-    {
-    // 	if(i % FRAME_LENTH == 0 )
-    // 	{
-    // 		if(i != 0)
-    // 		{
-				// printf("\r\nID DATA=");
-    // 		}
-    // 		else
-    // 		{
-    // 			printf("ID DATA=");
-    // 		}
-    // 	}
-        printf("%02x ",ReadBuf[i]);
-    }
+    // printf("\r\nID DATA=");
+    // for(i=0;i<j;i++)
+    // {
+    // // 	if(i % FRAME_LENTH == 0 )
+    // // 	{
+    // // 		if(i != 0)
+    // // 		{
+				// // printf("\r\nID DATA=");
+    // // 		}
+    // // 		else
+    // // 		{
+    // // 			printf("ID DATA=");
+    // // 		}
+    // // 	}
+    //     printf("%02x ",ReadBuf[i]);
+    // }
     
     rssi = ReadBuf[i-1];
     // if(rssi >= 128)

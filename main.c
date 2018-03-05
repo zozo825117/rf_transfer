@@ -17,11 +17,11 @@ void main(void)
 
 	if(socat_declare()==1){
 	  sprintf(str_buf,"ln -s /dev/pts/%d /dev/ttyGW0",pts_num0);
-	  printf("system (%s)\n", str_buf);
+	  //printf("system (%s)\n", str_buf);
 		// system("ln -s /dev/pts/3 /dev/ttyGW0");
 		system( str_buf);
 	  sprintf(str_buf,"ln -s /dev/pts/%d /dev/ttyGW1",pts_num1);
-	  printf("system (%s)\n", str_buf);
+	  //printf("system (%s)\n", str_buf);
 		// system("ln -s /dev/pts/4 /dev/ttyGW1");
 		system( str_buf);
 		//system("rm string.log");		

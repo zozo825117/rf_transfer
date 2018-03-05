@@ -101,7 +101,7 @@ int socat_declare(void)
 
   FILE *pf0 = fopen("socat.log", "r");
   if(pf0 != NULL) {
-      printf("file exist rm\n");
+      //printf("file exist rm\n");
       fclose(pf0);
       system("rm socat.log");
 
@@ -109,7 +109,7 @@ int socat_declare(void)
 
 
 	system("socat -d -d -lf socat.log pty,raw,echo=0 pty,raw,echo=0 & ");
-	printf("init socat\r\n");
+	//printf("init socat\r\n");
 	sleep(2);
 
 
@@ -129,9 +129,9 @@ int socat_declare(void)
 
 		ptr = strlen(str_buf);
 
-	  printf("\r\nfile len = %d\n",ptr);
+	  //printf("\r\nfile len = %d\n",ptr);
 
-	  printf("\r\nfile = %s\n",str_buf);
+	  //printf("\r\nfile = %s\n",str_buf);
 
 		str_ptr = str_buf;
 
@@ -139,7 +139,7 @@ int socat_declare(void)
 
 		if(index != -1)
 		{
-			printf("index%d = %d\n",cnt,index);
+			//printf("index%d = %d\n",cnt,index);
 			str_ptr += (index + 9);
 			//pts_num0 = 0;
 			i = 0;
@@ -150,7 +150,7 @@ int socat_declare(void)
 				str_ptr++;
 			}
 
-			printf("num0_buf = %s\n",num0_buf);
+			//printf("num0_buf = %s\n",num0_buf);
 			if(cnt == 0){
 				if(StringtoInt(&pts_num0,num0_buf)) {
 					printf("pts0 num = %d\n",pts_num0);
@@ -158,7 +158,7 @@ int socat_declare(void)
 			}
 			else if(cnt == 1){
 				if(StringtoInt(&pts_num1,num0_buf)) {
-					printf("pts0 num = %d\n",pts_num1);
+					printf("pts1 num = %d\n",pts_num1);
 				}			
 			}
 
