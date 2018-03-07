@@ -12,9 +12,11 @@
 #include <termios.h> 
 #include <sys/ioctl.h> 
 #include <sys/types.h>
+#include<sys/time.h>
 
 #include <linux/types.h>
 #include <linux/spi/spidev.h>
+
 
 #include "gpio.h"
 #include "spi.h"

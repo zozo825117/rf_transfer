@@ -47,7 +47,7 @@ extern int trd_create(TRD_t *trd_id, void *(*func)(void *), void *arg);
 ///     @author     xuliang<gxuliang@gmail.com>
 ///     @date       2010－04－24
 //////////////////////////////////////////////////////////////////////////
-inline void trd_lock_init(LOCK_t *lock);
+//inline void trd_lock_init(LOCK_t *lock);
 
 #endif
 

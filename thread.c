@@ -96,9 +96,9 @@ int trd_cancel(TRD_t *trd_id, void *(*func)(void *), void *arg)
 ///     @author     xuliang<gxuliang@gmail.com>
 ///     @date       2010－04－24
 //////////////////////////////////////////////////////////////////////////
-inline void trd_lock_init(LOCK_t *lock)
-{
-    pthread_mutex_init(lock, NULL);
-}
+// inline void trd_lock_init(LOCK_t *lock)
+// {
+//     pthread_mutex_init(lock, NULL);
+// }
 
 
