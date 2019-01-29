@@ -35,5 +35,7 @@ void main(void)
 	com_init();
 	spi_init();
 	//gpio_init();
-	while(1);
+	while(1){
+		sleep(10);
+	}
 }
